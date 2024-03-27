@@ -7,7 +7,8 @@ async function initial() {
   appsToCreate = [
     {
       nameApps: "Auth",
-      description: "Auth actions, like register or changes permissions"
+      description: "Auth actions, like register or changes permissions",
+      url: "auth"
     }
   ]
 
@@ -21,7 +22,8 @@ async function initial() {
         } else {
           apps.create({
             nameApps: app.nameApps,
-            description: app.description
+            description: app.description,
+            url: app.url
           });
         }
       })

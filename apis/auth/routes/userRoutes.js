@@ -10,6 +10,8 @@ const authenticateToken = require('../middleware/authMiddleware')
 
 
 router.post("/register", registerValidator, authenticateToken, UserController.register)
+router.get("/infoUser", authenticateToken, UserController.infoUser)
+router.get("/appsUser", authenticateToken, UserController.getAppsUser)
 router.post("/login", loginValidator, UserController.login)
 router.get("/ping", UserController.test)
 

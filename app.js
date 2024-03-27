@@ -3,12 +3,16 @@ const logger = require("morgan");
 const http = require("http");
 const bodyParser = require("body-parser");
 const app = express();
+const cors = require("cors")
+
 
 app.use(logger("dev"));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
+app.use(cors())
 app.use("/api", require("./routesAPI"));
+
 
 app.use("/", require("./routesFront"))
 // app.get("*", (req, res) =>

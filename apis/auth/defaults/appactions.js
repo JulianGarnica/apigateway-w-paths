@@ -7,14 +7,28 @@ async function initial() {
 
   appsActionsToCreate = [
     {
-      nameAction: "/api/auth/register,register",
+      path: "/api/auth/register",
+      nameAction: "register",
       description: "Allow register user",
-      appid: 1
+      appid: 1,
     },
     {
-      nameAction: "/api/auth/apps,register",
+      path: "/api/auth/apps",
+      nameAction: "register",
       description: "Allow register app",
-      appid: 1
+      appid: 1,
+    },
+    {
+      path: "/api/gtfacturas/invoice",
+      nameAction: "createInvoice",
+      description: "Allow create invoice",
+      appid: 1,
+    },
+    {
+      path: "/api/gtfacturas/assignInvoice",
+      nameAction: "assignInvoice",
+      description: "Can asign invoice invoice",
+      appid: 1,
     }
   ]
 
@@ -27,9 +41,10 @@ async function initial() {
           console.log(`AppAction ${app.nameAction} already exists`)
         } else {
           AppActions.create({
+            path: app.path,
             nameAction: app.nameAction,
             description: app.description,
-            appid: app.appid
+            appid: app.appid,
           });
         }
       })

@@ -19,7 +19,6 @@ function authenticateToken(req, res, next) {
     }
 
     User.sync().then(function () {
-      console.log(req.originalUrl)
       User.findOne({ where: { id: user.userId }, attributes: { exclude: ['createdAt', 'updatedAt', 'password'] } }).then(async function (data) {
         if(data){
           req.user = data;

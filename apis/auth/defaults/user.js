@@ -13,7 +13,6 @@ async function initial() {
         // Hash the password
         const salt = await bcrypt.genSalt(10);
         User.create({
-          id: 1,
           email: "agujadoctor@gmail.com",
           nit: "1230201",
           name: "admin",

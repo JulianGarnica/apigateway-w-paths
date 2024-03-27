@@ -5,8 +5,12 @@ const { validationResult } = require("express-validator");
 const db = require("../models/index");
 const config = require("../../../config.json")["development"];
 
+
 const SECRET_KEY = config.secret_key;
 const User = db.User;
+const apps = db.apps;
+const AppActions = db.AppActions;
+const PermissionsUser = db.PermissionsUser;
 
 class UserController {
   static async test(req, res) {
@@ -14,7 +18,6 @@ class UserController {
   }
 
   static async register(req, res) {
-    console.log(req.user);
     // Input validation
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -83,7 +86,7 @@ class UserController {
                   { userId: data.id, name: data.name },
                   SECRET_KEY,
                   {
-                    expiresIn: "15m",
+                    expiresIn: "300m",
                   }
                 );
                 // Generate refresh token (you can also save this in the database)
@@ -105,6 +108,52 @@ class UserController {
       console.error(err);
       return res.status(500).json({ error: "Server Error" });
     }
+  }
+
+  static async infoUser(req, res) {
+    // Input validation
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+
+    try {
+      res.status(201).json({ user: req.user });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Server Error" });
+    }
+  }
+
+  static async getAppsUser(req, res){
+    PermissionsUser.findAll({
+      where: { userid: req.user.id },
+      include: [{
+        model: AppActions,
+        as: "appactions",
+        include: [{
+          model: apps,
+          as: "apps",
+          attributes: ['nameApps', 'description', 'image', 'url']
+        }]
+      }]
+    //includeIgnoreAttributes: false,
+    }).then(result => {
+      // Resultado contiene los nombres filtrados
+      const response = result.map(result => ({
+        nameApp: result.appactions.apps.nameApps,
+        description: result.appactions.apps.description,
+        image: result.appactions.apps.image,
+        url: result.appactions.apps.url
+      }))
+      const appsAssigned = [...new Set(response.map(a => a.nameApp))].map(nameApp => response.find(a => a.nameApp === nameApp));
+      res.status(201).json({ appsAssigned });
+      //console.log(result);
+    }).catch(err => {
+      // Manejo de errores
+      console.error('Error:', err);
+    });
   }
 }
 module.exports = UserController;
