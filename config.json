@@ -1,7 +1,7 @@
 {
   "development": {
-    "username": "jsgarnica",
-    "password": "01,doctoraguja",
+    "username": "",
+    "password": "",
     "database": "ppscolombia",
     "host": "localhost",
     "dialect": "mysql",

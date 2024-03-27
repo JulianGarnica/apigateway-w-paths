@@ -16,13 +16,12 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   Invoices.init({
-    id: {
+    NUMERO: {
       allowNull: false,
-      autoIncrement: true,
+      autoIncrement: false,
       primaryKey: true,
       type: DataTypes.INTEGER,
     },
-    NUMERO: DataTypes.INTEGER,
     FECHA: DataTypes.DATE,
     NIT: DataTypes.STRING,
     NOMBRE: DataTypes.STRING,
