@@ -135,23 +135,84 @@ class UserController {
         include: [{
           model: apps,
           as: "apps",
-          attributes: ['nameApps', 'description', 'image', 'url']
+          attributes: ['id','nameApps', 'description', 'image', 'url']
         }]
       }]
     //includeIgnoreAttributes: false,
     }).then(result => {
+      const resultOrg = result
       // Resultado contiene los nombres filtrados
       const response = result.map(result => ({
         nameApp: result.appactions.apps.nameApps,
         description: result.appactions.apps.description,
         image: result.appactions.apps.image,
-        url: result.appactions.apps.url
+        url: result.appactions.apps.url,
+        id: result.appactions.apps.id,
+        permissions: resultOrg.map(resultPermissions => ({
+          path: resultPermissions.appactions.path,
+          nameAction: resultPermissions.appactions.nameAction,
+          description: resultPermissions.appactions.description,
+          id: resultPermissions.appactions.id
+        }))
       }))
       const appsAssigned = [...new Set(response.map(a => a.nameApp))].map(nameApp => response.find(a => a.nameApp === nameApp));
       res.status(201).json({ appsAssigned });
       //console.log(result);
     }).catch(err => {
       // Manejo de errores
+      console.error('Error:', err);
+    });
+  }
+
+  static async getAllPermissions(req, res){
+    AppActions.findAll({
+      include: [{
+        model: apps,
+        as: "apps",
+      }]
+    //includeIgnoreAttributes: false,
+    }).then(result => {
+      const resultOrg = result
+      // Resultado contiene los nombres filtrados
+      res.status(201).json({ result });
+      //console.log(result);
+    }).catch(err => {
+      // Manejo de errores
+      console.error('Error:', err);
+    });
+  }
+
+  static async deletePermissions(req, res){
+    const { actionid, userid } = req.body;
+    PermissionsUser.destroy({
+      where: {
+        actionid: actionid,
+        userid: userid
+      }
+    }).then(result => {
+      res.status(201).json({ message: "Permission deleted successfully" });
+    }).catch(err => {
+      // Manejo de errores
+      console.error('Error:', err);
+    });
+    userid
+  }
+
+  static async addPermissions(req, res){
+    //Add permission if not exist
+    const { actionid, userid } = req.body;
+    PermissionsUser.findOrCreate({
+      where: {
+        userid: userid,
+        actionid: actionid
+      }
+    }).then(([permission, created]) => {
+      if (created) {
+        res.status(201).json({ message: "Permission assigned successfully" });
+      } else {
+        res.status(200).json({ message: "Permission already exists" });
+      }
+    }).catch(err => {
       console.error('Error:', err);
     });
   }

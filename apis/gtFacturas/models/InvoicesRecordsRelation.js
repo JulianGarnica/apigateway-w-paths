@@ -25,7 +25,12 @@ module.exports = (sequelize, DataTypes) => {
       primaryKey: true,
       type: DataTypes.INTEGER,
     },
-    payment: DataTypes.FLOAT
+    payment: DataTypes.FLOAT,
+    comments: DataTypes.STRING,
+    reviewed: {
+      type: DataTypes.TINYINT,
+      defaultValue: 0,
+    }
   }, {
     sequelize,
     modelName: 'gtFacturas_InvoicesRecordsRelation',

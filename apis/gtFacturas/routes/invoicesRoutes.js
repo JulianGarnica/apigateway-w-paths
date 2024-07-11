@@ -15,7 +15,7 @@ router.get("/getInvoices", authenticateToken, InvoicesController.getInvoices)
 router.get("/getInvoice", authenticateToken, InvoicesController.getInvoice)
 router.post("/uploadInvoices", authenticateToken, InvoicesController.uploadInvoices)
 router.post("/uploadImageInvoice", authenticateToken, InvoicesController.uploadImageInvoice)
-
+router.post("/updateReview", authenticateToken, InvoicesController.updateReview)
 
 
 module.exports = router;

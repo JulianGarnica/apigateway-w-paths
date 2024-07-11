@@ -77,7 +77,7 @@ var uploadImage = multer({
   limits: { fileSize: maxSize },
   fileFilter: function (req, file, cb) {
     // Set the filetypes, it is optional
-    var filetypes = /jpg|png|jpge|bmp/;
+    var filetypes = /jpg|png|jpge|jpeg|bmp/;
     var mimetype = filetypes.test(file.mimetype);
     console.log(file.mimetype);
 
@@ -90,7 +90,9 @@ var uploadImage = multer({
     cb(
       "Error: File upload only supports the " +
         "following filetypes - " +
-        filetypes
+        filetypes +
+        "file type selected - "+
+        file.mimetype
     );
   },
   // mypic is the name of file attribute
@@ -278,7 +280,8 @@ class InvoicesController {
               InvoicesRecordsRelation.create({
                 invoicesrecordsid: invoiceCreated.id,
                 invoicesid: invoice.id,
-                payment: invoice.payment
+                payment: invoice.payment,
+                comments: invoice.comments,
               });
             }
             res.status(201).json({ message : "Success"});
@@ -348,47 +351,104 @@ class InvoicesController {
             { CONDICION: { [Op.like]: `%${search}%` } },
             { OBSERVACIO: { [Op.like]: `%${search}%` } },
             { OBSERVACIO: { [Op.like]: `%${search}%` } },
+            
           ],
+          [Op.and]: [
+            { nc: 1 },
+            { PAGO_SALDO: { [Op.gt]: 0 } }
+          ]
         }
-      : null;
-
-    const { limit, offset } = getPagination(page, size);
-    Invoices.findAndCountAll({
-      where: condition,
-      limit,
-      offset,
-      attributes: [
-        "NUMERO",
-        "FECHA",
-        "FECVIG",
-        "SUBTOTAL",
-        "IVA",
-        "SUBTOTAL",
-        "IVA",
-        "RETIVAV",
-        "RETFTEV",
-        "TOTAL",
-        "PAGO_SALDO",
-        [
-          db.Sequelize.literal('(SELECT COALESCE(SUM(payment), 0) FROM gtFacturas_InvoicesRecordsRelations WHERE invoicesid = gtFacturas_Invoices.NUMERO)'),
-          'total_payments'
-        ],
-        [
-          db.Sequelize.literal('gtFacturas_Invoices.PAGO_SALDO - (COALESCE((SELECT SUM(payment) FROM gtFacturas_InvoicesRecordsRelations WHERE invoicesid = gtFacturas_Invoices.NUMERO), 0))'),
-          'new_total'
+      : {
+        [Op.and]: [
+          { nc: 1 },
+          { PAGO_SALDO: { [Op.gt]: 0 } }
         ]
-      ]
-    })
-      .then((data) => {
-        const response = getPagingData(data, page, limit);
-        res.send(response);
-      })
-      .catch((err) => {
-        res.status(500).send({
-          message:
-            err.message || "Some error occurred while retrieving tutorials.",
-        });
-      });
+      };
+
+    const { limit, offset } = getPagination(page-1, size);
+    if(search == null || search == "") {
+        
+        Invoices.findAndCountAll({
+          where: condition,
+          limit,
+          offset,
+          attributes: [
+            "NUMERO",
+            "FECHA",
+            "FECVIG",
+            "SUBTOTAL",
+            "IVA",
+            "SUBTOTAL",
+            "IVA",
+            "RETIVAV",
+            "RETFTEV",
+            "TOTAL",
+            "PAGO_SALDO",
+          ],
+        })
+          .then(async (data) => {
+
+            for(let i in data.rows){
+              await db.sequelize.query('SELECT reviewed, COUNT(*) as cuantity FROM ppscolombia.gtFacturas_InvoicesRecordsRelations gfirr WHERE invoicesid = ? GROUP BY reviewed ORDER BY cuantity DESC', {
+                replacements: [data.rows[i].NUMERO],
+              }).then((records) => {
+                let status = "Sin pagar"
+                // 1 -> Aprobado
+                // 2 -> Rechazado
+                for(let e in records[0]){
+                  if(records[0][e].reviewed == 0 && status == "Sin pagar"){
+                    status = "En espera"
+                  }
+                  if(records[0][e].reviewed == 1 && (status == "En espera" || status == "Sin pagar")){
+                    status = "Pagos confirmados"
+                  }
+                  if(records[0][e].reviewed == 2 && (status == "En espera" || status == "Pagos confirmados" || status == "Sin pagar")){
+                    status = "Hay pagos en espera/rechazados"
+                  }
+                  
+                }
+                data.rows[i].dataValues.status = status
+              })
+            }
+            const response = getPagingData(data, page-1, limit);
+            res.send(response);
+          })
+          .catch((err) => {
+            res.status(500).send({
+              message:
+                err.message || "Some error occurred while retrieving tutorials.",
+            });
+          })
+      } else {
+        Invoices.findAndCountAll({
+          where: condition,
+          limit,
+          attributes: [
+            "NUMERO",
+            "FECHA",
+            "FECVIG",
+            "SUBTOTAL",
+            "IVA",
+            "SUBTOTAL",
+            "IVA",
+            "RETIVAV",
+            "RETFTEV",
+            "TOTAL",
+            "PAGO_SALDO",
+            
+          ]
+        })
+          .then((data) => {
+            const response = getPagingData(data, page-1, limit);
+            res.send(response);
+          })
+          .catch((err) => {
+            res.status(500).send({
+              message:
+                err.message || "Some error occurred while retrieving tutorials.",
+            });
+          })
+      }
   }
 
   static async getInvoice(req, res) {
@@ -415,18 +475,18 @@ class InvoicesController {
     for(let key in Invoices.rawAttributes )   {
       columns.push(key);
     }
-    columns.push(
-      [
-        db.Sequelize.literal('(SELECT COALESCE(SUM(payment), 0) FROM gtFacturas_InvoicesRecordsRelations WHERE invoicesid = gtFacturas_Invoices.NUMERO)'),
-        'total_payments'
-      ]
-    )
-    columns.push(
-      [
-        db.Sequelize.literal('gtFacturas_Invoices.PAGO_SALDO - (COALESCE((SELECT SUM(payment) FROM gtFacturas_InvoicesRecordsRelations WHERE invoicesid = gtFacturas_Invoices.NUMERO), 0))'),
-        'new_total'
-      ]
-    )
+    // columns.push(
+    //   [
+    //     db.Sequelize.literal('(SELECT COALESCE(SUM(payment), 0) FROM gtFacturas_InvoicesRecordsRelations WHERE invoicesid = gtFacturas_Invoices.NUMERO)'),
+    //     'total_payments'
+    //   ]
+    // )
+    // columns.push(
+    //   [
+    //     db.Sequelize.literal('gtFacturas_Invoices.PAGO_SALDO - (COALESCE((SELECT SUM(payment) FROM gtFacturas_InvoicesRecordsRelations WHERE invoicesid = gtFacturas_Invoices.NUMERO), 0))'),
+    //     'new_total'
+    //   ]
+    // )
 
     Invoices.findAndCountAll({
       where: condition,
@@ -439,13 +499,16 @@ class InvoicesController {
           model: InvoicesRecords,
           where: { NUMERO: db.Sequelize.col('invoicesid') },
           attributes: ['image'],
+          
           as: 'invoicesrecords'
         }],
+        order: [['id', 'DESC']],
         attributes: [
           "id",
           "payment",
           "createdAt",
-          
+          "comments", 
+          "reviewed"
         ],
         raw: true,
         nest: true
@@ -469,6 +532,59 @@ class InvoicesController {
       });
     });
     
+  }
+
+  static async updateReview(req, res) {
+    const { id, status } = req.query;
+    // Input validation
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    if(status!=1 && status!=2){
+      return res.status(400).json({ errors: "Not valid status" });
+    }
+
+    try {
+      InvoicesRecordsRelation.sync().then(function () {
+        InvoicesRecordsRelation.findOne({ where: { id: id } })
+          .then(async function (data) {
+            if (data) {
+              InvoicesRecordsRelation.update({
+                reviewed: status,
+              },
+              {
+                where: {
+                  id: id,
+                },
+              });
+
+              if(status == 1){
+                Invoices.update({
+                  PAGO_SALDO: db.Sequelize.literal(`PAGO_SALDO - ${data.payment}`),
+                },
+                {
+                  where: {
+                    NUMERO: data.invoicesid,
+                  },
+                });
+              }
+
+              res.status(201).json({ message: "Status changed succesfully" });
+            } else {
+              return res.status(400).json({ error: "Id doesn't exist." });
+            }
+          })
+          .catch(async (error) => {
+            console.log(error);
+            res.status(500).json({ message: "Server error" });
+          });
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Server Error" });
+    }
   }
 }
 module.exports = InvoicesController;

@@ -71,7 +71,7 @@ module.exports = (sequelize, DataTypes) => {
     REMI18: DataTypes.BIGINT,
     REMI19: DataTypes.BIGINT,
     REMI20: DataTypes.BIGINT,
-    FECVIG: DataTypes.STRING,
+    FECVIG: DataTypes.DATE,
     NC: DataTypes.BIGINT,
     RETCREP: DataTypes.BIGINT,
     RETCREV: DataTypes.BIGINT,

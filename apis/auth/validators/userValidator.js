@@ -15,3 +15,8 @@ exports.loginValidator = [
   //body("password").isLength({ min: 6 }).withMessage("Invalid password"),
   body("password").isLength({ min: 1 }).withMessage("Invalid password"),
 ];
+
+exports.permissionsValidator = [
+  body("userid").isInt().withMessage("Invalid userid"),
+  body("actionid").isInt().withMessage("Invalid actionid")
+];
